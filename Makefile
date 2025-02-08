@@ -1,6 +1,10 @@
 BINARY_PATH := build/gcat/gcat
 GO ?= go
 BUILD_FLAGS := -ldflags="-s -w"
+COVERAGE_DIR := coverage
+COVERAGE_FILE := $(COVERAGE_DIR)/coverage.out
+
+.PHONY: all build install clean test coverage fmt lint vet tidy generate help docker
 
 all: build
 
@@ -12,20 +16,21 @@ install:
 	$(GO) install ./cmd/gcat
 
 clean:
-	rm -rf build
+	rm -rf build coverage
 
 test:
 	$(GO) test ./...
 
 coverage:
-	$(GO) test -coverprofile=coverage.out ./...
-	$(GO) tool cover -html=coverage.out -o coverage.html
+	mkdir -p $(COVERAGE_DIR)
+	$(GO) test -coverprofile=$(COVERAGE_FILE) ./...
+	$(GO) tool cover -html=$(COVERAGE_FILE) -o $(COVERAGE_DIR)/coverage.html
 
 fmt:
 	$(GO) fmt ./...
 
 lint:
-	golangci-lint run
+	golangci-lint run ./...
 
 vet:
 	$(GO) vet ./...

@@ -3,6 +3,7 @@ package clipboard
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"golang.design/x/clipboard"
 )
 
@@ -22,13 +23,15 @@ func TestWriteText(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+			var answer string
+			write = func(_ clipboard.Format, text []byte) <-chan struct{} {
+				answer = string(text)
+				return nil
+			}
 
 			WriteText(tt.want)
-			bytes := clipboard.Read(clipboard.FmtText)
 
-			if got := string(bytes); got != tt.want {
-				t.Errorf("WriteText() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, answer)
 		})
 	}
 }
