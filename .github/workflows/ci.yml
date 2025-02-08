@@ -7,11 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
-    env:
-      COVERAGE_THRESHOLD: 80
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -21,41 +18,70 @@ jobs:
         with:
           go-version: "1.23.6"
 
-      - name: Cache Go modules
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+      - name: Go Version
+        run: go version
 
       - name: Tidy modules
         run: make tidy
 
-      - name: Run tests
-        run: make test
-
-      - name: Check formatting
-        run: make fmt
+      - name: install golang ci lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
       - name: Run linting
         run: make lint
 
-      - name: Generate coverage report
+  test:
+    runs-on: ubuntu-latest
+    env:
+      COVERAGE_THRESHOLD: 80
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.23.6"
+
+      - name: Go Version
+        run: go version
+
+      - name: Tidy modules
+        run: make tidy
+
+      - name: Install X11 dependencies
+        run: sudo apt update && sudo apt install -y libx11-dev xorg-dev
+
+      - name: Run tests and generate coverage
         run: make coverage
 
       - name: Check project coverage threshold (warning only)
         run: |
-          # The coverage target should have generated "coverage.out"
-          COVERAGE=$(go tool cover -func=coverage.out | grep total: | awk '{print $3}' | sed 's/%//')
+          COVERAGE=$(go tool cover -func=coverage/coverage.out | grep total: | awk '{print $3}' | sed 's/%//')
           echo "Total coverage is: ${COVERAGE}%"
           if (( $(echo "$COVERAGE < $COVERAGE_THRESHOLD" | bc -l) )); then
             echo "WARNING: Coverage ($COVERAGE%) is below the threshold of ${COVERAGE_THRESHOLD}%."
           else
             echo "Coverage ($COVERAGE%) meets the threshold of ${COVERAGE_THRESHOLD}%."
           fi
+
+  build:
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.23.6"
+
+      - name: Go Version
+        run: go version
+
+      - name: Tidy modules
+        run: make tidy
 
       - name: Build the application
         run: make build
