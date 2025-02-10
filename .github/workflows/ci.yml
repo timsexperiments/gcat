@@ -63,7 +63,6 @@ jobs:
           fi
 
   build:
-    needs: [lint, test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

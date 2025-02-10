@@ -1,6 +1,8 @@
 BINARY_PATH := build/gcat/gcat
 GO ?= go
-BUILD_FLAGS := -ldflags="-s -w"
+# VERSION can be set via an environment variable (default is v0.0.0-dev)
+VERSION ?= v0.0.0-dev
+BUILD_FLAGS := -ldflags="-s -w -X main.version=$(VERSION)"
 COVERAGE_DIR := coverage
 COVERAGE_FILE := $(COVERAGE_DIR)/coverage.out
 

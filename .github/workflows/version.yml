@@ -1,0 +1,112 @@
+name: Version Bump
+
+on:
+  pull_request:
+    types: [opened, labeled, unlabeled, closed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Select the release type"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+      prerelease:
+        description: "Select a pre-release label if needed"
+        required: false
+        type: choice
+        options:
+          - alpha
+          - beta
+
+jobs:
+  calculate-version:
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.calc.outputs.new_version }}
+      release_type: ${{ steps.determine.outputs.release_type }}
+      prerelease: ${{ steps.determine.outputs.prerelease }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Determine Release Parameters
+        id: determine
+        run: |
+          RELEASE_TYPE=""
+          PRERELEASE=""
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              RELEASE_TYPE="${{ github.event.inputs.release_type }}"
+              PRERELEASE="${{ github.event.inputs.prerelease }}"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+              echo "Examining PR labels..."
+              for label in $(echo '${{ toJson(github.event.pull_request.labels) }}' | jq -r '.[].name'); do
+                  lower_label=$(echo "$label" | tr '[:upper:]' '[:lower:]')
+                  case "$lower_label" in
+                      major|minor|patch)
+                          RELEASE_TYPE="$lower_label"
+                          ;;
+                      alpha|beta)
+                          PRERELEASE="$lower_label"
+                          ;;
+                  esac
+              done
+          else
+              echo "Unsupported event type: ${{ github.event_name }}"
+              exit 1
+          fi
+
+          echo "Determined release_type: $RELEASE_TYPE"
+          echo "Determined prerelease: $PRERELEASE"
+          echo "release_type=${RELEASE_TYPE}" >> $GITHUB_OUTPUT
+          echo "prerelease=${PRERELEASE}" >> $GITHUB_OUTPUT
+
+      - name: Calculate New Version
+        id: calc
+        run: |
+          OLD_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          NEW_VERSION=$(./scripts/calc_new_version.sh "${{ steps.determine.outputs.release_type }}" "${{ steps.determine.outputs.prerelease }}")
+          if [ -n "$OLD_VERSION" ]; then
+            echo "bumping from $OLD_VERSION to $NEW_VERSION" >&2
+          else
+            echo "setting version to $NEW_VERSION" >&2
+          fi
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Warn if no version bump detected
+        if: ${{ github.event_name == 'pull_request' && steps.determine.outputs.release_type == '' }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: "⚠️ **Warning:** No version bump label was detected on this PR. If you intended to trigger a release, please add one of the following labels: `major`, `minor`, or `patch`."
+            })
+
+  bump-version:
+    needs: calculate-version
+    runs-on: ubuntu-latest
+    if: ${{ (github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.state == 'closed')) && needs.calculate-version.outputs.release_type != '' }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Git
+        run: |
+          git config user.name "CI Bot"
+          git config user.email "ci@example.com"
+
+      - name: Create Version Tag
+        env:
+          NEW_VERSION: ${{ needs.calculate-version.outputs.new_version }}
+        run: |
+          echo "Tagging new version: $NEW_VERSION"
+          git tag "$NEW_VERSION"
+          git push origin "$NEW_VERSION"
