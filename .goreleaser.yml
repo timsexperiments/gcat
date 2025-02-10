@@ -1,0 +1,27 @@
+project_name: gcat
+
+builds:
+  - binary: gcat
+    main: ./cmd/gcat/main.go
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+    ldflags: "-s -w -X main.version={{ .Version }}"
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE.md
+
+changelog:
+  sort: asc
+
+release:
+  github:
+    owner: timsexperiments
+    name: gcat
