@@ -30,7 +30,8 @@ if [ -n "$PRERELEASE" ]; then
   fi
 fi
 
-LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+LATEST_TAG=$(git tag -l 'v*' | sort -V | tail -n 1)
+LATEST_TAG=${LATEST_TAG:-v0.0.0}
 
 VERSION_NO_V=${LATEST_TAG#v}
 if [[ $VERSION_NO_V =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-([a-z]+)\.([0-9]+))?$ ]]; then
