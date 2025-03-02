@@ -13,6 +13,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Install X11 dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxkbcommon-x11-dev libxcb-xkb-dev libxcb1-dev libxcb-render0-dev libxcb-icccm4-dev libxcb-image0-dev xorg-dev
+
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
@@ -43,6 +48,11 @@ jobs:
           git config --global user.name "gcat CI"
           git config --global user.email "ci@timsexperiments.foo"
 
+      - name: Install X11 dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxkbcommon-x11-dev libxcb-xkb-dev libxcb1-dev libxcb-render0-dev libxcb-icccm4-dev libxcb-image0-dev xorg-dev
+
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
@@ -72,6 +82,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Install X11 dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxkbcommon-x11-dev libxcb-xkb-dev libxcb1-dev libxcb-render0-dev libxcb-icccm4-dev libxcb-image0-dev xorg-dev
 
       - name: Set up Go
         uses: actions/setup-go@v4
