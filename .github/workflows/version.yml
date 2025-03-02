@@ -173,7 +173,6 @@ jobs:
             const { NEW_VERSION } = process.env;
             console.log(`Creating tag: ${NEW_VERSION}`);
 
-            // Create the tag reference
             await github.rest.git.createRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
