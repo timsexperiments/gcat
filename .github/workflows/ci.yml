@@ -38,6 +38,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Set up Git
+        run: |
+          git config --global user.name "gcat CI"
+          git config --global user.email "ci@timsexperiments.foo"
+
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
@@ -63,7 +68,6 @@ jobs:
           fi
 
   build:
-    needs: [lint, test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
