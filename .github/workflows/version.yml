@@ -166,13 +166,21 @@ jobs:
           git config user.email "ci@timsexperiments.foo"
 
       - name: Create Version Tag
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.RELEASE_TOKEN }}
+          script: |
+            const { NEW_VERSION } = process.env;
+            console.log(`Creating tag: ${NEW_VERSION}`);
+
+            // Create the tag reference
+            await github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/tags/${NEW_VERSION}`,
+              sha: context.sha
+            });
+
+            console.log(`Successfully created tag ${NEW_VERSION}`);
         env:
           NEW_VERSION: ${{ needs.calculate-version.outputs.new_version }}
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        run: |
-          echo "Tagging new version: $NEW_VERSION"
-          git config user.name "gcat CI"
-          git config user.email "ci@timsexperiments.foo"
-          git tag "$NEW_VERSION"
-          gh auth setup-git
-          git push origin "$NEW_VERSION"
