@@ -27,6 +27,18 @@ This tool is perfect for creating a single, LLM–friendly string containing mul
 
 ## Installation
 
+### Option 1: Using Go Install (recommended)
+
+```bash
+go install github.com/timsexperiments/gcat/cmd/gcat@latest
+```
+
+### Option 2: Pre-built binaries
+
+Download the pre-built binary for your platform from the [releases page](https://github.com/timsexperiments/gcat/releases).
+
+### Option 3: Build from source
+
 1. **Clone the Repository:**
 
    ```bash
