@@ -1,3 +1,5 @@
+version: 2
+
 project_name: gcat
 
 builds:
@@ -12,7 +14,10 @@ builds:
     ldflags: "-s -w -X main.version={{ .Version }}"
 
 archives:
-  - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  - format_overrides:
+      - goos: windows
+        format: zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - README.md
       - LICENSE.md
