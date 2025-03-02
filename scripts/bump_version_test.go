@@ -1,6 +1,7 @@
 package scripts
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -121,9 +122,9 @@ func TestCalcNewVersion(t *testing.T) {
 		},
 		{
 			name:       "invalid latest tag format",
-			initialTag: "invalid",
+			initialTag: "vinvalid",
 			args:       []string{"patch"},
-			expected:   "Error: Latest tag 'invalid' is not in a valid semantic version format.",
+			expected:   "Error: Latest tag 'vinvalid' is not in a valid semantic version format.",
 			wantErr:    true,
 		},
 	}
@@ -159,6 +160,7 @@ func TestCalcNewVersion(t *testing.T) {
 			cmd = exec.Command(scriptPath, tt.args...)
 			cmd.Dir = tempDir
 			outputBytes, err := cmd.CombinedOutput()
+			fmt.Println(string(outputBytes))
 
 			if tt.wantErr {
 				require.Error(t, err, "script unexpectedly succeeded")
