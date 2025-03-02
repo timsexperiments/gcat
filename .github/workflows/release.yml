@@ -3,7 +3,9 @@ name: Release
 on:
   push:
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+*" # trigger only when a semantic version tag is pushed
+      - "v*.*.*" # Matches standard versions
+      - "v*.*.*-*" # Matches prerelease versions
+  workflow_dispatch:
 
 jobs:
   release:
