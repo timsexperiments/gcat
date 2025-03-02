@@ -1,7 +1,6 @@
 name: Version Bump
 
 permissions:
-  contents: write
   pull-requests: write
   issues: write
 
@@ -30,6 +29,7 @@ on:
 
 jobs:
   calculate-version:
+    if: ${{ github.actor != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
     outputs:
       new_version: ${{ steps.calc.outputs.new_version }}
@@ -170,5 +170,8 @@ jobs:
           NEW_VERSION: ${{ needs.calculate-version.outputs.new_version }}
         run: |
           echo "Tagging new version: $NEW_VERSION"
+          git config user.name "gcat CI"
+          git config user.email "ci@timsexperiments.foo"
           git tag "$NEW_VERSION"
+          git remote set-url origin https://x-access-token:${{ secrets.RELEASE_TOKEN }}@github.com/${{ github.repository }}
           git push origin "$NEW_VERSION"
