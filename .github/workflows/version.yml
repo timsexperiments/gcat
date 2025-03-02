@@ -1,5 +1,10 @@
 name: Version Bump
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
 on:
   pull_request:
     types: [opened, reopened, synchronize, labeled, unlabeled, closed]
@@ -28,11 +33,14 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       new_version: ${{ steps.calc.outputs.new_version }}
+      old_version: ${{ steps.calc.outputs.old_version }}
       release_type: ${{ steps.determine.outputs.release_type }}
       prerelease: ${{ steps.determine.outputs.prerelease }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Determine Release Parameters
         id: determine
@@ -68,9 +76,17 @@ jobs:
 
       - name: Calculate New Version
         id: calc
+        if: ${{ steps.determine.outputs.release_type != '' }}
         run: |
           OLD_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          NEW_VERSION=$(./scripts/bump_version.sh "${{ steps.determine.outputs.release_type }}" "${{ steps.determine.outputs.prerelease }}")
+          echo "old_version=$OLD_VERSION" >> $GITHUB_OUTPUT
+
+          NEW_VERSION=$(./scripts/bump_version.sh "${{ steps.determine.outputs.release_type }}" "${{ steps.determine.outputs.prerelease }}" || echo "")
+          if [ -z "$NEW_VERSION" ]; then
+            echo "Failed to calculate new version" >&2
+            exit 1
+          fi
+
           if [ -n "$OLD_VERSION" ]; then
             echo "bumping from $OLD_VERSION to $NEW_VERSION" >&2
           else
@@ -78,17 +94,63 @@ jobs:
           fi
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Warn if no version bump detected
-        if: ${{ github.event_name == 'pull_request' && steps.determine.outputs.release_type == '' }}
+      - name: Update PR with version info
+        if: ${{ github.event_name == 'pull_request' }}
         uses: actions/github-script@v6
         with:
           script: |
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-              body: "⚠️ **Warning:** No version bump label was detected on this PR. If you intended to trigger a release, please add one of the following labels: `major`, `minor`, or `patch`."
-            })
+            const releaseType = '${{ steps.determine.outputs.release_type }}';
+            const prerelease = '${{ steps.determine.outputs.prerelease }}';
+            const oldVersion = '${{ steps.calc.outputs.old_version }}';
+            const newVersion = '${{ steps.calc.outputs.new_version }}';
+
+            // Function to find existing bot comment
+            async function findBotComment() {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+              });
+              
+              return comments.find(comment => 
+                comment.user.type === 'Bot' && 
+                comment.body.includes('<!-- VERSION-BOT -->')
+              );
+            }
+
+            let message = '<!-- VERSION-BOT -->\n';
+
+            if (!releaseType) {
+              message += '⚠️ **Warning:** No version bump label was detected on this PR. If you intended to trigger a release, please add one of the following labels: `major`, `minor`, or `patch`.';
+            } else {
+              const versionTypeText = prerelease ? `${releaseType} (${prerelease})` : releaseType;
+              message += `✅ **Version Bump Detected**: \`${versionTypeText}\`\n\n`;
+              
+              if (oldVersion) {
+                message += `This PR will bump the version from \`${oldVersion}\` to \`${newVersion}\` when merged.`;
+              } else {
+                message += `This PR will set the initial version to \`${newVersion}\` when merged.`;
+              }
+            }
+
+            // Find existing comment to update
+            const existingComment = await findBotComment();
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: message
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: message
+              });
+            }
 
   bump-version:
     needs: calculate-version
