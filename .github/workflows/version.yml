@@ -38,7 +38,7 @@ jobs:
       prerelease: ${{ steps.determine.outputs.prerelease }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -159,7 +159,7 @@ jobs:
     if: ${{ (github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.state == 'closed')) && needs.calculate-version.outputs.release_type != '' }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Git
         run: |
